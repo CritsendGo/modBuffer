@@ -24,13 +24,13 @@ func main(){
     var item time.Time
     item=time.Now()
     err:=myBuffer.Add(item)
-    if err!nil{
+    if err!=nil{
         fmt.Println(err)
     }
 	
     // Get Next Item
     item,err:=myBuffer.Get()
-    if err!nil{
+    if err!=nil{
         fmt.Println(err)
     }
 }
