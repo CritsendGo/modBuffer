@@ -84,15 +84,20 @@ func (b *CSBuffer) Add(e *any) error {
 func (b *CSBuffer) Get() (any, error) {
 	// Lock Usage
 	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
 	// Check if buffer is empty
 	if len(b.data) == 0 {
-		return nil, errorBufferIsEmpty
+		b.mutex.Unlock()
+		b.ScanFolder()
+		b.mutex.Lock()
+		if len(b.data) == 0 {
+			b.mutex.Unlock()
+			return nil, errorBufferIsEmpty
+		}
 	}
 	// Get and remove the first item from the buffer
 	item := b.data[0]
 	b.data = b.data[1:]
+	b.mutex.Unlock()
 	return item, nil
 }
 func (b *CSBuffer) Save(e *any) error {
@@ -155,14 +160,10 @@ func (b *CSBuffer) Finish(content any) error {
 }
 
 func (b *CSBuffer) ScanFolder() {
-
 	err := filepath.WalkDir(b.folder+"new/", func(filePath string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
 		} else {
-			if len(b.data) >= b.maxSize {
-				return nil
-			}
 			if Debug {
 				fmt.Println("DEBUG:", b.folder+"new/"+d.Name())
 			}
@@ -178,7 +179,7 @@ func (b *CSBuffer) ScanFolder() {
 			}
 			err = b.Add(&obj)
 			if err == nil {
-				_ = os.Remove(filePathDetail)
+				_ = os.Rename(filePathDetail, b.folder+"ack/"+d.Name())
 			}
 			return err
 		}

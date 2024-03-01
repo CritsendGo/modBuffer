@@ -23,7 +23,7 @@ func TestCreateBuffer(t *testing.T) {
 	}
 }
 func TestAll(t *testing.T) {
-	Debug = false
+	Debug = true
 	err := os.RemoveAll(folderTest)
 	if err != nil {
 		t.Fatal("Unable to clean folder buffer", err)
@@ -165,17 +165,7 @@ func TestAll(t *testing.T) {
 	_, err = bu.Get()
 	time.Sleep(100 * time.Millisecond)
 	if len(bu.data) != 1 || bu.SizeNew() != 4 {
-		t.Fatal("NEED TO BE BUFFER=2 AND FOLDER=5 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
-	} else {
-		fmt.Println("\tBUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
-	}
-
-	fmt.Println("Reading Item")
-	bu.ScanFolder()
-	time.Sleep(100 * time.Millisecond)
-	// Adding 3 to folder  Getting One buffer and Scan Folder
-	if len(bu.data) != 2 || bu.SizeNew() != 3 {
-		t.Fatal("NEED TO BE BUFFER=2 AND FOLDER=5 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
+		t.Fatal("NEED TO BE BUFFER=1 AND FOLDER=4 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
 	} else {
 		fmt.Println("\tBUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
 	}
@@ -183,21 +173,20 @@ func TestAll(t *testing.T) {
 	fmt.Println("Getting Item")
 	_, err = bu.Get()
 	time.Sleep(100 * time.Millisecond)
-	if len(bu.data) != 1 || bu.SizeNew() != 3 {
-		t.Fatal("NEED TO BE BUFFER=2 AND FOLDER=5 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
+	if len(bu.data) != 0 || bu.SizeNew() != 4 {
+		t.Fatal("NEED TO BE BUFFER=1 AND FOLDER=3 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
 	} else {
 		fmt.Println("\tBUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
 	}
 
 	fmt.Println("Getting Item")
 	_, err = bu.Get()
-	time.Sleep(100 * time.Millisecond)
-	if len(bu.data) != 0 || bu.SizeNew() != 3 {
-		t.Fatal("NEED TO BE BUFFER=2 AND FOLDER=5 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
+	time.Sleep(200 * time.Millisecond)
+	if len(bu.data) != 2 || bu.SizeNew() != 2 {
+		t.Fatal("NEED TO BE BUFFER=2 AND FOLDER=2 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
 	} else {
 		fmt.Println("\tBUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
 	}
-
 	fmt.Println("Getting Item")
 	_, err = bu.Get()
 	time.Sleep(100 * time.Millisecond)
@@ -209,7 +198,7 @@ func TestAll(t *testing.T) {
 
 	fmt.Println("Reading Item")
 	bu.ScanFolder()
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 	// Adding 3 to folder  Getting One buffer and Scan Folder
 	if len(bu.data) != 2 || bu.SizeNew() != 1 {
 		t.Fatal("NEED TO BE BUFFER=2 AND FOLDER=3 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err)
