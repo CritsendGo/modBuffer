@@ -2,9 +2,14 @@ package modBuffer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -23,6 +28,9 @@ func NewBuffer(folder string, size int) (*CSBuffer, error) {
 		mutex:   sync.Mutex{},
 		folder:  folder,
 	}
+	if Debug == true {
+		fmt.Println("DEBUG: NEW BUFFER FOR ", folder, "WITH SIZE", size)
+	}
 	err := b.Init()
 	// No Error lock buffer Set
 	if err != nil {
@@ -37,15 +45,15 @@ func (b *CSBuffer) Init() error {
 	}
 	// Create Sub Folder
 	/// new for CSBuffer.Save() and CSBuffer.Read()function
-	if os.MkdirAll(b.folder+"new/", os.ModePerm) != nil {
+	if os.MkdirAll(b.folder+"new/", 777) != nil {
 		fmt.Println("Error creating folder:", b.folder+"new/")
 	}
 	/// err for CSBuffer.Error()
-	if os.MkdirAll(b.folder+"err/", os.ModePerm) != nil {
+	if os.MkdirAll(b.folder+"err/", 777) != nil {
 		fmt.Println("Error creating folder:", b.folder+"err/")
 	}
 	/// ack for CSBuffer.Finish()
-	if os.MkdirAll(b.folder+"ack/", os.ModePerm) != nil {
+	if os.MkdirAll(b.folder+"ack/", 777) != nil {
 		fmt.Println("Error creating folder:", b.folder+"ack/")
 	}
 	return nil
@@ -53,16 +61,19 @@ func (b *CSBuffer) Init() error {
 
 func (b *CSBuffer) Add(e *any) error {
 	if Debug == true {
-		fmt.Printf("%+v\n", b)
+		fmt.Println("DEBUG:", "ADD NEW SIZE => ", len(b.data))
 	}
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 	// Check if buffer is full
 	if len(b.data) >= b.maxSize {
+		if Debug == true {
+			fmt.Println("DEBUG:", "SIZE IS OVER", b.maxSize)
+		}
 		// Write on disk event return on success critical on error
 		err := b.Save(e)
 		if err != nil {
-			log.Println("BUFFER FULL AND UNABLE TO SAVE EVENT ON DISK")
+			log.Println("ERROR:BUFFER FULL AND UNABLE TO SAVE EVENT ON DISK")
 			return err
 		}
 		return errorBufferIsFull
@@ -74,6 +85,7 @@ func (b *CSBuffer) Get() (any, error) {
 	// Lock Usage
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	// Check if buffer is empty
 	if len(b.data) == 0 {
 		return nil, errorBufferIsEmpty
@@ -84,33 +96,41 @@ func (b *CSBuffer) Get() (any, error) {
 	return item, nil
 }
 func (b *CSBuffer) Save(e *any) error {
+	b.SizeNew()
 	if Debug == true {
-		fmt.Printf("%+v\n", b)
+		fmt.Println("DEBUG:", "SAVING ITEM TO FOLDER", b.folder+"new/")
 	}
 	fileName := fmt.Sprintln(time.Now().UnixMicro())
-	filePath := BufferFolder + fileName
-	f, err := os.Create(filePath)
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			log.Println("ERROR IN CLOSING FILE", err)
-		}
-	}(f)
+	fileName = strings.TrimSpace(fileName)
+	data, err := json.Marshal(e)
 	if err != nil {
-		log.Println("CREATE EVENT DD", err)
-		return err
+		log.Println("ERROR MARSHAL:", err)
 	}
-	eBit, err := json.Marshal(e)
-	if err != nil {
-		log.Println("JSON EVENT DD", err)
-		return err
+	filePathItem := b.folder + "new/" + fileName + ".json"
+	if Debug == true {
+		fmt.Println("DEBUG:", filePathItem)
 	}
-	_, err = f.Write(eBit)
+	err = ioutil.WriteFile(filePathItem, data, 0660)
 	if err != nil {
-		log.Println("WRITE EVENT DD", err)
-		return err
+		log.Println("ERROR WRITE FILE:", err)
 	}
 	return nil
+}
+func (b *CSBuffer) SizeNew() int {
+	var nb = 0
+	if Debug == true {
+		fmt.Println("DEBUG:", "CHECKING SIZE OF FOLDER NEW")
+	}
+	_ = filepath.WalkDir(b.folder+"new/", func(filePath string, d fs.DirEntry, err error) error {
+		if strings.Index(d.Name(), ".json") > -1 {
+			nb++
+		}
+		return nil
+	})
+	if Debug == true {
+		fmt.Println("DEBUG:", "SIZE IN NEW", nb)
+	}
+	return nb
 }
 func (b *CSBuffer) Read(filePath string) error {
 	if Debug == true {
@@ -132,4 +152,44 @@ func (b *CSBuffer) Finish(content any) error {
 	}
 
 	return nil
+}
+
+func (b *CSBuffer) ScanFolder() {
+
+	err := filepath.WalkDir(b.folder+"new/", func(filePath string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
+		} else {
+			if len(b.data) >= b.maxSize {
+				return nil
+			}
+			if Debug {
+				fmt.Println("DEBUG:", b.folder+"new/"+d.Name())
+			}
+			filePathDetail := b.folder + "new/" + d.Name()
+			bt, err := os.ReadFile(filePathDetail)
+			if err != nil {
+				return err
+			}
+			var obj any
+			err = json.Unmarshal(bt, &obj)
+			if err != nil {
+				return err
+			}
+			err = b.Add(&obj)
+			if err == nil {
+				_ = os.Remove(filePathDetail)
+			}
+			return err
+		}
+	})
+	if err != nil {
+		if errors.Is(err, errorBufferIsFull) {
+			return
+		} else {
+
+		}
+
+	}
+
 }
