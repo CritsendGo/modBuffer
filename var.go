@@ -18,7 +18,7 @@ var (
 	BufferFolder    string
 	Debug           bool
 	Log             bool
-	ReadingInterval = 1 * time.Second
+	ReadingInterval time.Duration = 1 * time.Second
 )
 
 // Private Vars
