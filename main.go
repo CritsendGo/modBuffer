@@ -32,6 +32,9 @@ func NewBuffer(folder string, size int) (*CSBuffer, error) {
 		fmt.Println("DEBUG: NEW BUFFER FOR ", folder, "WITH SIZE", size)
 	}
 	err := b.Init()
+	// Read Folder Each Interval to refill buffer
+	go b.Fill()
+
 	// No Error lock buffer Set
 	if err != nil {
 		bufferList[folder] = true
@@ -56,13 +59,15 @@ func (b *CSBuffer) Init() error {
 	if os.MkdirAll(b.folder+"ack/", 777) != nil {
 		fmt.Println("Error creating folder:", b.folder+"ack/")
 	}
+	go b.Survey()
 	return nil
 }
 
-func (b *CSBuffer) Add(e *any) error {
+func (b *CSBuffer) Add(e any) error {
 	if Debug == true {
 		fmt.Println("DEBUG:", "ADD NEW SIZE => ", len(b.data))
 	}
+	var item *any = &e
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 	// Check if buffer is full
@@ -71,15 +76,36 @@ func (b *CSBuffer) Add(e *any) error {
 			fmt.Println("DEBUG:", "SIZE IS OVER", b.maxSize)
 		}
 		// Write on disk event return on success critical on error
-		err := b.Save(e)
+
+		err := b.Save(item)
 		if err != nil {
 			log.Println("ERROR:BUFFER FULL AND UNABLE TO SAVE EVENT ON DISK")
 			return err
 		}
 		return errorBufferIsFull
 	}
-	b.data = append(b.data, e)
+	b.data = append(b.data, item)
 	return nil
+}
+
+func (b *CSBuffer) Fill() {
+	for {
+		if Debug == true {
+
+		}
+		if len(b.data) != b.maxSize && b.SizeNew() != 0 {
+			b.ScanFolder()
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+func (b *CSBuffer) Survey() {
+	for {
+		if Debug == true {
+			fmt.Println("SURVEY SIZE OF POOL ", len(b.data), " SIZE OF FOLDER ", b.SizeNew(), b)
+		}
+		time.Sleep(1000 * time.Millisecond)
+	}
 }
 func (b *CSBuffer) Get() (any, error) {
 	// Lock Usage
@@ -87,12 +113,7 @@ func (b *CSBuffer) Get() (any, error) {
 	// Check if buffer is empty
 	if len(b.data) == 0 {
 		b.mutex.Unlock()
-		b.ScanFolder()
-		b.mutex.Lock()
-		if len(b.data) == 0 {
-			b.mutex.Unlock()
-			return nil, errorBufferIsEmpty
-		}
+		return nil, errorBufferIsEmpty
 	}
 	// Get and remove the first item from the buffer
 	item := b.data[0]
@@ -101,7 +122,7 @@ func (b *CSBuffer) Get() (any, error) {
 	return item, nil
 }
 func (b *CSBuffer) Save(e *any) error {
-	b.SizeNew()
+
 	if Debug == true {
 		fmt.Println("DEBUG:", "SAVING ITEM TO FOLDER", b.folder+"new/")
 	}
@@ -133,7 +154,7 @@ func (b *CSBuffer) SizeNew() int {
 		return nil
 	})
 	if Debug == true {
-		fmt.Println("DEBUG:", "SIZE IN NEW", nb)
+		//fmt.Println("DEBUG:", "SIZE IN NEW", nb)
 	}
 	return nb
 }
@@ -165,7 +186,7 @@ func (b *CSBuffer) ScanFolder() {
 			return nil
 		} else {
 			if Debug {
-				fmt.Println("DEBUG:", b.folder+"new/"+d.Name())
+				fmt.Println("DEBUG: READING ", b.folder+"new/"+d.Name())
 			}
 			filePathDetail := b.folder + "new/" + d.Name()
 			bt, err := os.ReadFile(filePathDetail)
@@ -175,11 +196,18 @@ func (b *CSBuffer) ScanFolder() {
 			var obj any
 			err = json.Unmarshal(bt, &obj)
 			if err != nil {
+				if Debug {
+					fmt.Println("DEBUG: ERROR  ", err)
+				}
 				return err
 			}
 			err = b.Add(&obj)
 			if err == nil {
 				_ = os.Rename(filePathDetail, b.folder+"ack/"+d.Name())
+			}
+			if Debug {
+				fmt.Println("DEBUG: ERROR  ", err)
+				fmt.Println("DEBUG: SIZE  ", len(b.data))
 			}
 			return err
 		}

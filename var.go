@@ -14,6 +14,7 @@ var (
 var (
 	BufferFolder string
 	Debug        bool
+	Log          bool
 )
 
 // Private Vars

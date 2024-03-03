@@ -1,10 +1,13 @@
 package modBuffer
 
-import "sync"
+import (
+	"sync"
+)
 
 type CSBuffer struct {
-	folder  string
-	data    []*any
-	maxSize int
-	mutex   sync.Mutex
+	folder     string
+	data       []*any
+	maxSize    int
+	mutex      sync.Mutex
+	folderSize int
 }
