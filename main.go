@@ -104,7 +104,7 @@ func (b *CSBuffer) Survey() {
 		if Debug == true {
 			fmt.Println("SURVEY SIZE OF POOL ", len(b.data), " SIZE OF FOLDER ", b.SizeNew(), b)
 		}
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(ReadingInterval)
 	}
 }
 func (b *CSBuffer) Get() (any, error) {

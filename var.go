@@ -1,6 +1,9 @@
 package modBuffer
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 // Error
 var (
@@ -12,9 +15,10 @@ var (
 
 // Public Vars
 var (
-	BufferFolder string
-	Debug        bool
-	Log          bool
+	BufferFolder    string
+	Debug           bool
+	Log             bool
+	ReadingInterval = 1 * time.Second
 )
 
 // Private Vars

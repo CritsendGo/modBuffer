@@ -71,6 +71,16 @@ func TestAll(t *testing.T) {
 	if rep != "Third" {
 		t.Fatal("NEED TO BE BUFFER=1 AND FOLDER=1 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err, "CONTENT", rep)
 	}
+	rep = addContent(bu, "Fifth")
+	if rep != "Fifth" {
+		t.Fatal("Add One Entry , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err, "CONTENT", rep)
+	}
+	// Reading before next loop of folder buffer
+	rep = getContent(bu)
+	if rep != "Fifth" {
+		t.Fatal("NEED TO BE BUFFER=1 AND FOLDER=1 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err, "CONTENT", rep)
+	}
+	time.Sleep(2 * ReadingInterval)
 	rep = getContent(bu)
 	if rep != "Fourth" {
 		t.Fatal("NEED TO BE BUFFER=1 AND FOLDER=1 , BUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err, "CONTENT", rep)
@@ -78,18 +88,18 @@ func TestAll(t *testing.T) {
 }
 
 func addContent(bu *CSBuffer, val string) string {
-	time.Sleep(1 * time.Second)
+
 	obj := TestContainer{val, time.Now()}
 	err := bu.Add(obj)
 	if Log == true {
 		fmt.Println("ADDING CONTENT")
 		fmt.Println("\tBUFFER = ", len(bu.data), "FOLDER=", bu.SizeNew(), "ERROR:", err, "CONTENT", obj.Val)
 	}
-	time.Sleep(1 * time.Second)
+
 	return obj.Val
 }
 func getContent(bu *CSBuffer) string {
-	time.Sleep(1 * time.Second)
+
 	obj := TestContainer{}
 	val, err := bu.Get()
 	if err != nil {
