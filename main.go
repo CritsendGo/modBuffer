@@ -118,6 +118,7 @@ func (b *CSBuffer) Get() (any, error) {
 	// Get and remove the first item from the buffer
 	item := b.data[0]
 	b.data = b.data[1:]
+	_ = b.Finish(item)
 	b.mutex.Unlock()
 	return item, nil
 }
@@ -174,9 +175,22 @@ func (b *CSBuffer) Error(content any) error {
 }
 func (b *CSBuffer) Finish(content any) error {
 	if Debug == true {
-		fmt.Println("FINISH BUFFER", content)
+		fmt.Println("DEBUG:", "SAVING ITEM TO FOLDER", b.folder+"new/")
 	}
-
+	fileName := fmt.Sprintln(time.Now().UnixMicro())
+	fileName = strings.TrimSpace(fileName)
+	data, err := json.Marshal(content)
+	if err != nil {
+		log.Println("ERROR MARSHAL:", err)
+	}
+	filePathItem := b.folder + "ack/" + fileName + ".json"
+	if Debug == true {
+		fmt.Println("DEBUG:", filePathItem)
+	}
+	err = ioutil.WriteFile(filePathItem, data, 0660)
+	if err != nil {
+		log.Println("ERROR WRITE FILE:", err)
+	}
 	return nil
 }
 
