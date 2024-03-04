@@ -180,6 +180,7 @@ func (b *CSBuffer) Finish(content any) error {
 	fileName := fmt.Sprintln(time.Now().UnixMicro())
 	fileName = strings.TrimSpace(fileName)
 	data, err := json.Marshal(content)
+
 	if err != nil {
 		log.Println("ERROR MARSHAL:", err)
 	}
